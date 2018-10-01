@@ -1,0 +1,10 @@
+{
+  "editor.tabSize": 4,
+  "beautify.language": {
+    "js": {
+      "ext": [
+        "sol"
+      ]
+    }
+  }
+}
