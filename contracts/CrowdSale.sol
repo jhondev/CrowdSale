@@ -1,6 +1,6 @@
 pragma solidity ^0.4.25;
 
-contract CrowdSale {
+contract CrowdSale is Ownable {
     uint256 public startTime; // #A
     uint256 public endTime; // #B
     uint256 public weiTokenPrice; // #C
@@ -17,6 +17,7 @@ contract CrowdSale {
 
     event LogInvestment(address indexed investor, uint256 value);
     event LogTokenAssignment(address indexed investor, uint256 numTokens);
+    event Refund(address investor, uint256 value);
 
     SimpleCoin public crowdSaleToken; // #K
 
@@ -67,6 +68,35 @@ contract CrowdSale {
 
     function calculateNumberOfTokens(uint256 _investment) internal returns(uint256) {
         return _investment / weiTokenPrice; //#K2
+    }
+
+    function finalize() onlyOwner public {
+        if (isFinalized) revert();
+
+        bool isCrowdsaleComplete = now > endTime;
+        bool investmentObjectiveMet = investmentReceived >= weiInvestmentObjective;
+
+        if (isCrowdsaleComplete) {
+            if (investmentObjectiveMet)
+                crowdsaleToken.release();
+            else
+                isRefundingAllowed = true;
+
+            isFinalized = true;
+        }
+    }
+
+    function refund() public {
+        if (!isRefundingAllowed) revert();
+
+        address investor = msg.sender;
+        uint256 investment = investmentAmountOf[investor];
+        if (investment == 0) revert();
+        investmentAmountOf[investor] = 0;
+        investmentRefunded += investment;
+        Refund(msg.sender, investment);
+
+        if (!investor.send(investment)) revert();
     }
 }
 
