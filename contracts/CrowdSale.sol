@@ -14,7 +14,7 @@ contract CrowdSale is Ownable {
     bool public isFinalized; // #H
     bool public isRefundingAllowed; // #I
     address public owner; // #J
-
+    
     event LogInvestment(address indexed investor, uint256 value);
     event LogTokenAssignment(address indexed investor, uint256 numTokens);
     event Refund(address investor, uint256 value);
@@ -66,7 +66,9 @@ contract CrowdSale is Ownable {
         crowdsaleToken.mint(_beneficiary, _numberOfTokens); //#J2
     }
 
-    function calculateNumberOfTokens(uint256 _investment) internal returns(uint256) {
+    function calculateNumberOfTokens(uint256 _investment)
+    internal returns(uint256) {
+        updateCurrentTrancheAndPrice();
         return _investment / weiTokenPrice; //#K2
     }
 
@@ -97,7 +99,7 @@ contract CrowdSale is Ownable {
         Refund(msg.sender, investment);
 
         if (!investor.send(investment)) revert();
-    }
+    }    
 }
 
 // #A start time, in unix epoch, of the crowdsale funding stage
