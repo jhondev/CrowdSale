@@ -1,6 +1,8 @@
 pragma solidity ^0.4.25;
+import "./Pausable.sol";
+import "./Destructible.sol";
 
-contract CrowdSale is Ownable {
+contract CrowdSale is Pausable, Destructible {
     uint256 public startTime; // #A
     uint256 public endTime; // #B
     uint256 public weiTokenPrice; // #C
@@ -14,15 +16,19 @@ contract CrowdSale is Ownable {
     bool public isFinalized; // #H
     bool public isRefundingAllowed; // #I
     address public owner; // #J
-    
+
     event LogInvestment(address indexed investor, uint256 value);
     event LogTokenAssignment(address indexed investor, uint256 numTokens);
     event Refund(address investor, uint256 value);
 
     SimpleCoin public crowdSaleToken; // #K
 
-    constructor(uint256 _startTime, uint256 _endTime,
-        uint256 _weiTokenPrice, uint256 _etherInvestmentObjective) public {
+    constructor(
+        uint256 _startTime,
+        uint256 _endTime,
+        uint256 _weiTokenPrice,
+        uint256 _etherInvestmentObjective
+    ) public {
         require(_startTime >= now); //#A1
         require(_endTime >= _startTime); //#A1
         require(_weiTokenPrice != 0); //#A1
@@ -39,7 +45,8 @@ contract CrowdSale is Ownable {
         owner = msg.sender; //#D1
     }
 
-    function invest() public payable { //#A2
+    function invest() public payable {
+        //#A2
         require(isValidInvestment(msg.value)); //#B2
 
         address investor = msg.sender;
@@ -52,7 +59,10 @@ contract CrowdSale is Ownable {
         LogInvestment(investor, investment); //#E2
     }
 
-    function isValidInvestment(uint256 _investment) internal view returns(bool) { //#F2
+    function isValidInvestment(uint256 _investment) internal view returns(
+        bool
+    ) {
+        //#F2
         bool nonZeroInvestment = _investment != 0; //#G2
         bool withinCrowsalePeriod = now >= startTime && now <= endTime; //#H2
 
@@ -60,29 +70,27 @@ contract CrowdSale is Ownable {
     }
 
     function assignTokens(address _beneficiary, uint256 _investment) internal {
-
         uint256 _numberOfTokens = calculateNumberOfTokens(_investment); //#I2
 
         crowdsaleToken.mint(_beneficiary, _numberOfTokens); //#J2
     }
 
-    function calculateNumberOfTokens(uint256 _investment)
-    internal returns(uint256) {
+    function calculateNumberOfTokens(uint256 _investment) internal returns(
+        uint256
+    ) {
         updateCurrentTrancheAndPrice();
         return _investment / weiTokenPrice; //#K2
     }
 
-    function finalize() onlyOwner public {
+    function finalize() public onlyOwner {
         if (isFinalized) revert();
 
         bool isCrowdsaleComplete = now > endTime;
         bool investmentObjectiveMet = investmentReceived >= weiInvestmentObjective;
 
         if (isCrowdsaleComplete) {
-            if (investmentObjectiveMet)
-                crowdsaleToken.release();
-            else
-                isRefundingAllowed = true;
+            if (investmentObjectiveMet) crowdsaleToken.release();
+            else isRefundingAllowed = true;
 
             isFinalized = true;
         }
@@ -99,8 +107,9 @@ contract CrowdSale is Ownable {
         Refund(msg.sender, investment);
 
         if (!investor.send(investment)) revert();
-    }    
+    }
 }
+
 
 // #A start time, in unix epoch, of the crowdsale funding stage
 // #B end time, in unix epoch, of the crowdsale funding stage
